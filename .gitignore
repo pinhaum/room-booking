@@ -1,0 +1,26 @@
+# Claude Code
+.claude/settings.local.json
+
+# Skills
+.agents/skills/
+.claude/skills/
+
+# Secrets
+/config/master.key
+/config/credentials/*.key
+.env
+.env.*
+
+# Runtime
+/log/*
+/tmp/*
+/storage/*
+!/log/.keep
+!/tmp/.keep
+!/storage/.keep
+
+# Assets & dependencies
+/public/assets
+/node_modules
+/app/assets/builds/*
+!/app/assets/builds/.keep
