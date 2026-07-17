@@ -1,7 +1,7 @@
 # Meeting Room Booking
 
 Aplicação **Ruby on Rails 8** para gerenciamento de reservas de salas de reunião.
-Projeto de estudo (arquitetura em camadas, boas práticas, desenvolvimento orientado por IA).
+Projeto de estudo (arquitetura em camadas, boas práticas, desenvolvimento orientado com IA).
 
 ## Stack
 
