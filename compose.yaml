@@ -21,7 +21,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: bin/rails server -b 0.0.0.0
+    # Build Tailwind CSS on startup (output is gitignored, so recompile each boot),
+    # then start the server. For live CSS rebuilding, run `bin/rails tailwindcss:watch`.
+    command: bash -c "bin/rails tailwindcss:build && bin/rails server -b 0.0.0.0"
     # Run as the host user so files generated in the mounted volume aren't root-owned.
     user: "1000:1000"
     environment:

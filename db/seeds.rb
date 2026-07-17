@@ -7,3 +7,10 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
+
+# Development admin user (idempotent).
+if Rails.env.local?
+  admin = User.find_or_initialize_by(email: "admin@example.com")
+  admin.update!(name: "Admin", password: "password123", role: :admin) if admin.new_record?
+  Rails.logger.info("Seeded admin user: #{admin.email}")
+end

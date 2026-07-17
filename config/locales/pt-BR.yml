@@ -2,3 +2,8 @@ pt-BR:
   hello: "Olá, mundo"
   # Mensagens voltadas ao usuário devem ficar em pt-BR.
   # Chaves de domínio (User, Room, Reservation) serão adicionadas nas próximas fases.
+  auth:
+    invalid_credentials: "E-mail ou senha inválidos."
+    login_required: "Faça login para continuar."
+    signed_in: "Login realizado com sucesso."
+    signed_out: "Você saiu da sua conta."

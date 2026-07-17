@@ -4,35 +4,46 @@ Aplicação **Ruby on Rails 8** para gerenciamento de reservas de salas de reuni
 Projeto de **estudo** (arquitetura, boas práticas, desenvolvimento orientado por IA).
 
 ## Estado atual (IMPORTANTE)
-**Fase 0 (Bootstrap) concluída.** O esqueleto Rails 8 existe e roda via Docker:
-- App gerada com `rails new` (PostgreSQL, importmap+Hotwire, tailwindcss-rails).
-- Ruby 3.4.8 (`.tool-versions`/`.ruby-version`). Gems nativas do Rails 8 (Solid Queue/Cache/Cable, Kamal, Propshaft).
-- Docker Compose (`compose.yaml` + `Dockerfile.dev`): serviços `web` (roda como UID 1000), `db` (postgres:16), `mailpit`. Gems num volume `bundle_data`.
-- Testes: RSpec + FactoryBot + Faker + Shoulda + SimpleCov (`spec/`, cobertura em `/coverage`, gitignored).
-- Qualidade: RuboCop (rails-omakase, 0 offenses — sem `.rubocop_todo.yml`), Brakeman (0 alertas), Bullet.
-- i18n default `pt-BR`; timezone `America/Sao_Paulo` (AR em UTC).
-- Diretórios de camadas criados em `app/` (services/policies/queries/presenters/serializers/forms/validators/components) com `.keep`.
-- **Ainda não há domínio** (User/Room/Reservation), migrations ou regras de negócio — isso começa na Fase 1.
+**Fase 0 (Bootstrap) e Fase 1 (Autenticação) concluídas.**
 
-Rodar: `docker compose up -d` → `docker compose run --rm web bin/rails db:prepare`.
-Testes: `docker compose run --rm -e RAILS_ENV=test web bundle exec rspec` (o `web` define
-RAILS_ENV=development, então passe `-e RAILS_ENV=test` para specs).
-Nota: para instalar gems novas, rode bundle como root: `docker compose run --rm --user root web bundle install`.
+Fase 0: app Rails 8 (PostgreSQL, importmap+Hotwire, tailwindcss-rails/Propshaft), Docker Compose
+(`web` roda como UID 1000 e compila o Tailwind no boot; `db` postgres:16; `mailpit`; gems no
+volume `bundle_data`), RSpec/FactoryBot/Faker/Shoulda/SimpleCov, RuboCop (rails-omakase),
+Brakeman, Bullet, i18n default `pt-BR`, timezone `America/Sao_Paulo`, camadas em `app/`.
 
-## Planos
-- `.claude/plans/room-booking-roadmap.plan.md` — roadmap macro (Fases 0–8).
-- `.claude/plans/phase-0-bootstrap.plan.md` — plano executável da Fase 0 (concluído).
+Fase 1: `User` (`has_secure_password`, enum `role` member/admin, e-mail normalizado/único),
+service `UserAuthenticator` (retorna User ou levanta `InvalidCredentials`, compare dummy p/ timing),
+concern `Authentication` + `Current`, `SessionsController` (`/login` GET/POST, `/logout` DELETE),
+`HomeController` (root, requer auth), views ERB com Tailwind, i18n `auth.*`, seed admin
+(`admin@example.com` / `password123`). 21 specs verdes, rubocop/brakeman limpos.
 
-## Mapa de fontes
-- `.context/ecosystem.md` — visão geral e Definition of Done. **Fonte primária de requisitos.**
-- `.context/ARCHITECTURE.md` — padrões arquiteturais e estrutura de `app/`.
-- `.context/domain.md` — entidades (User, Room, Reservation) e regras de negócio.
-- `.context/decisions/ADR-001..012` — decisões arquiteturais.
+Tailwind: `app/assets/tailwind/application.css` (`@import "tailwindcss"`) → build em
+`app/assets/builds/tailwind.css` (gitignored). O layout usa `stylesheet_link_tag :app`, que no
+Rails 8.1 serve todos os stylesheets (application + tailwind). O `web` builda no boot; para
+rebuild ao vivo: `bin/rails tailwindcss:watch`. `bin/dev`/`Procfile.dev` existem mas não são
+usados no compose (foreman não instalado).
 
-## Domínio (alvo — ainda não implementado)
-- **User**: name, email, password_digest, role.
-- **Room**: name, capacity, description, available.
-- **Reservation**: room, user, starts_at, ends_at, purpose, status.
+### Armadilhas do ambiente (NÃO são ADR — são operacionais)
+- **Container `web` defasado:** `docker compose up -d web` NÃO reinicia sem mudança de config;
+  após instalar gem nova use `docker compose up -d --force-recreate web` (senão `LoadError`).
+- **`down -v` apaga o volume `bundle_data`** (gems) junto com o banco → reinstalar gems depois.
+- **Gem nova:** `docker compose run --rm --user root web bundle install` (root, por causa do volume).
+- **Deprecação:** trocar `:unprocessable_entity` por `:unprocessable_content` (Rack) — pendente.
+
+## Comandos essenciais
+- Subir: `docker compose up -d` → `docker compose run --rm web bin/rails db:prepare`
+- Testes: `docker compose run --rm -e RAILS_ENV=test web bundle exec rspec` (passar `-e RAILS_ENV=test`).
+- Migrar/seed: `docker compose run --rm web bin/rails db:migrate|db:seed`.
+
+## Planos e decisões
+- `.claude/plans/`: `room-booking-roadmap.plan.md`, `phase-0-bootstrap.plan.md`, `phase-1-authentication.plan.md`.
+- `.context/decisions/ADR-001..014` (novos: ADR-013 Ruby 3.4.8, ADR-014 assets sem Node).
+- Requisitos: `.context/ecosystem.md`, `.context/ARCHITECTURE.md`, `.context/domain.md`.
+
+## Domínio
+- **User**: name, email, password_digest, role. (implementado)
+- **Room**: name, capacity, description, available. (Fase 3)
+- **Reservation**: room, user, starts_at, ends_at, purpose, status. (Fase 4)
 
 ## Invariantes de negócio (ADR + domain.md)
 - Não permitir reservas sobrepostas na mesma sala.
