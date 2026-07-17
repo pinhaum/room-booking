@@ -4,31 +4,31 @@ Aplicação **Ruby on Rails 8** para gerenciamento de reservas de salas de reuni
 Projeto de **estudo** (arquitetura, boas práticas, desenvolvimento orientado por IA).
 
 ## Estado atual (IMPORTANTE)
-**Fase 0 (Bootstrap) e Fase 1 (Autenticação) concluídas.**
+**Fases 0 (Bootstrap), 1 (Autenticação) e 2 (Autorização) concluídas.**
 
 Fase 0: app Rails 8 (PostgreSQL, importmap+Hotwire, tailwindcss-rails/Propshaft), Docker Compose
-(`web` roda como UID 1000 e compila o Tailwind no boot; `db` postgres:16; `mailpit`; gems no
-volume `bundle_data`), RSpec/FactoryBot/Faker/Shoulda/SimpleCov, RuboCop (rails-omakase),
-Brakeman, Bullet, i18n default `pt-BR`, timezone `America/Sao_Paulo`, camadas em `app/`.
+(`web` roda como UID 1000 e compila Tailwind no boot; `db` postgres:16; `mailpit`; gems no volume
+`bundle_data`), RSpec/FactoryBot/Faker/Shoulda/SimpleCov, RuboCop (rails-omakase), Brakeman,
+Bullet, i18n `pt-BR`, timezone `America/Sao_Paulo`, camadas em `app/`.
 
 Fase 1: `User` (`has_secure_password`, enum `role` member/admin, e-mail normalizado/único),
-service `UserAuthenticator` (retorna User ou levanta `InvalidCredentials`, compare dummy p/ timing),
-concern `Authentication` + `Current`, `SessionsController` (`/login` GET/POST, `/logout` DELETE),
-`HomeController` (root, requer auth), views ERB com Tailwind, i18n `auth.*`, seed admin
-(`admin@example.com` / `password123`). 21 specs verdes, rubocop/brakeman limpos.
+service `UserAuthenticator`, concern `Authentication` + `Current`, `SessionsController`
+(`/login`, `/logout`), `HomeController` (root, requer auth), views ERB, i18n `auth.*`,
+seed admin (`admin@example.com` / `password123`).
 
-Tailwind: `app/assets/tailwind/application.css` (`@import "tailwindcss"`) → build em
-`app/assets/builds/tailwind.css` (gitignored). O layout usa `stylesheet_link_tag :app`, que no
-Rails 8.1 serve todos os stylesheets (application + tailwind). O `web` builda no boot; para
-rebuild ao vivo: `bin/rails tailwindcss:watch`. `bin/dev`/`Procfile.dev` existem mas não são
-usados no compose (foreman não instalado).
+Fase 2: autorização por Policies próprias (ADR-006, **não RBAC puro** — papel + ownership).
+`ApplicationPolicy` (deny-by-default, helpers `admin?`/`owner?`, `Scope`), concern `Authorization`
+(`authorize`/`policy`/`policy_scope` + `rescue_from Authorization::NotAuthorized` → 403; HTML render
+plain 403, JSON head :forbidden), i18n `authorization.not_authorized`. Policies concretas
+(`RoomPolicy`, `ReservationPolicy`) subclassificam `ApplicationPolicy` nas Fases 3–4.
 
-### Armadilhas do ambiente (NÃO são ADR — são operacionais)
-- **Container `web` defasado:** `docker compose up -d web` NÃO reinicia sem mudança de config;
-  após instalar gem nova use `docker compose up -d --force-recreate web` (senão `LoadError`).
-- **`down -v` apaga o volume `bundle_data`** (gems) junto com o banco → reinstalar gems depois.
-- **Gem nova:** `docker compose run --rm --user root web bundle install` (root, por causa do volume).
-- **Deprecação:** trocar `:unprocessable_entity` por `:unprocessable_content` (Rack) — pendente.
+**29 specs verdes, rubocop/brakeman limpos.**
+
+### Armadilhas do ambiente (operacionais, NÃO ADR)
+- Container `web` defasado: após instalar gem nova, `docker compose up -d --force-recreate web`.
+- `down -v` apaga o volume `bundle_data` (gems) → reinstalar depois.
+- Gem nova: `docker compose run --rm --user root web bundle install`.
+- Deprecação pendente: trocar `:unprocessable_entity` por `:unprocessable_content` (Rack).
 
 ## Comandos essenciais
 - Subir: `docker compose up -d` → `docker compose run --rm web bin/rails db:prepare`
@@ -36,9 +36,10 @@ usados no compose (foreman não instalado).
 - Migrar/seed: `docker compose run --rm web bin/rails db:migrate|db:seed`.
 
 ## Planos e decisões
-- `.claude/plans/`: `room-booking-roadmap.plan.md`, `phase-0-bootstrap.plan.md`, `phase-1-authentication.plan.md`.
-- `.context/decisions/ADR-001..014` (novos: ADR-013 Ruby 3.4.8, ADR-014 assets sem Node).
-- Requisitos: `.context/ecosystem.md`, `.context/ARCHITECTURE.md`, `.context/domain.md`.
+- `.claude/plans/`: roadmap + `phase-0`..`phase-2` (0–2 concluídas).
+- `.context/decisions/ADR-001..014`. Notáveis: ADR-006 (autorização = papel+ownership, policies próprias),
+  ADR-013 (Ruby 3.4.8), ADR-014 (assets sem Node).
+- Requisitos: `.context/ecosystem.md`, `ARCHITECTURE.md`, `domain.md`.
 
 ## Domínio
 - **User**: name, email, password_digest, role. (implementado)
