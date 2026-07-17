@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_17_163230) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_17_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "rooms", comment: "Salas disponíveis para reserva", force: :cascade do |t|
+    t.boolean "available", default: true, null: false, comment: "Indica se a sala pode ser reservada"
+    t.integer "capacity", null: false, comment: "Capacidade máxima de pessoas"
+    t.datetime "created_at", null: false
+    t.text "description", comment: "Descrição opcional da sala"
+    t.string "name", null: false, comment: "Nome único da sala"
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_rooms_on_name", unique: true
+  end
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false

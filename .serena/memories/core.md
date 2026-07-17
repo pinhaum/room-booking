@@ -4,7 +4,7 @@ Aplicação **Ruby on Rails 8** para gerenciamento de reservas de salas de reuni
 Projeto de **estudo** (arquitetura, boas práticas, desenvolvimento orientado por IA).
 
 ## Estado atual (IMPORTANTE)
-**Fases 0 (Bootstrap), 1 (Autenticação) e 2 (Autorização) concluídas.**
+**Fases 0 (Bootstrap), 1 (Autenticação), 2 (Autorização) e 3 (Rooms) concluídas.**
 
 Fase 0: app Rails 8 (PostgreSQL, importmap+Hotwire, tailwindcss-rails/Propshaft), Docker Compose
 (`web` roda como UID 1000 e compila Tailwind no boot; `db` postgres:16; `mailpit`; gems no volume
@@ -19,16 +19,25 @@ seed admin (`admin@example.com` / `password123`).
 Fase 2: autorização por Policies próprias (ADR-006, **não RBAC puro** — papel + ownership).
 `ApplicationPolicy` (deny-by-default, helpers `admin?`/`owner?`, `Scope`), concern `Authorization`
 (`authorize`/`policy`/`policy_scope` + `rescue_from Authorization::NotAuthorized` → 403; HTML render
-plain 403, JSON head :forbidden), i18n `authorization.not_authorized`. Policies concretas
-(`RoomPolicy`, `ReservationPolicy`) subclassificam `ApplicationPolicy` nas Fases 3–4.
+plain 403, JSON head :forbidden), i18n `authorization.not_authorized`.
 
-**29 specs verdes, rubocop/brakeman limpos.**
+Fase 3: recurso `Room` (name único/normalizado, capacity>0, description, available default true;
+tabela com comentários de coluna). Filtros via **scopes** (`available`, `with_min_capacity`,
+`search_by_name` com `sanitize_sql_like`) compostos por `Room.filter_by(params)` —
+**nome `filter_by`, NÃO `filter`** (evita colisão com `Enumerable#filter` em relations).
+Services `RoomCreator`/`RoomUpdater`/`RoomDestroyer` (`.call`, exceção carregando o record inválido).
+`RoomPolicy < ApplicationPolicy` (leitura p/ autenticados, escrita só admin; `Scope#resolve = scope.all`).
+`RoomsController` CRUD enxuto (`authorize` + `policy_scope`), rotas `resources :rooms`, views ERB
+(index+filtro, show, _form, new, edit), i18n `rooms.*` + `activerecord.attributes.room.*`, seed de 3 salas.
+
+**56 specs verdes, rubocop (54 arquivos)/brakeman limpos.**
 
 ### Armadilhas do ambiente (operacionais, NÃO ADR)
 - Container `web` defasado: após instalar gem nova, `docker compose up -d --force-recreate web`.
 - `down -v` apaga o volume `bundle_data` (gems) → reinstalar depois.
 - Gem nova: `docker compose run --rm --user root web bundle install`.
 - Deprecação pendente: trocar `:unprocessable_entity` por `:unprocessable_content` (Rack).
+- Método de filtro em model NÃO pode se chamar `filter`/`select` (Enumerable os define em relations).
 
 ## Comandos essenciais
 - Subir: `docker compose up -d` → `docker compose run --rm web bin/rails db:prepare`
@@ -36,14 +45,14 @@ plain 403, JSON head :forbidden), i18n `authorization.not_authorized`. Policies 
 - Migrar/seed: `docker compose run --rm web bin/rails db:migrate|db:seed`.
 
 ## Planos e decisões
-- `.claude/plans/`: roadmap + `phase-0`..`phase-2` (0–2 concluídas).
+- `.claude/plans/`: roadmap + `phase-0`..`phase-3` (0–3 concluídas). Próximo: `phase-4-reservations`.
 - `.context/decisions/ADR-001..014`. Notáveis: ADR-006 (autorização = papel+ownership, policies próprias),
-  ADR-013 (Ruby 3.4.8), ADR-014 (assets sem Node).
+  ADR-010 (filtros via scopes), ADR-013 (Ruby 3.4.8), ADR-014 (assets sem Node).
 - Requisitos: `.context/ecosystem.md`, `ARCHITECTURE.md`, `domain.md`.
 
 ## Domínio
 - **User**: name, email, password_digest, role. (implementado)
-- **Room**: name, capacity, description, available. (Fase 3)
+- **Room**: name, capacity, description, available. (implementado — Fase 3)
 - **Reservation**: room, user, starts_at, ends_at, purpose, status. (Fase 4)
 
 ## Invariantes de negócio (ADR + domain.md)
