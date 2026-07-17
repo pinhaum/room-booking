@@ -1,0 +1,26 @@
+<div class="max-w-sm mx-auto mt-16">
+  <h1 class="text-2xl font-semibold mb-6">Entrar</h1>
+
+  <% if flash[:alert] %>
+    <p class="mb-4 rounded bg-red-100 text-red-800 px-3 py-2 text-sm"><%= flash[:alert] %></p>
+  <% end %>
+  <% if flash[:notice] %>
+    <p class="mb-4 rounded bg-green-100 text-green-800 px-3 py-2 text-sm"><%= flash[:notice] %></p>
+  <% end %>
+
+  <%= form_with url: login_path, method: :post, class: "space-y-4" do %>
+    <div>
+      <%= label_tag :email, "E-mail", class: "block text-sm font-medium mb-1" %>
+      <%= email_field_tag :email, params[:email], required: true, autofocus: true,
+            class: "w-full rounded border px-3 py-2" %>
+    </div>
+
+    <div>
+      <%= label_tag :password, "Senha", class: "block text-sm font-medium mb-1" %>
+      <%= password_field_tag :password, nil, required: true,
+            class: "w-full rounded border px-3 py-2" %>
+    </div>
+
+    <%= submit_tag "Entrar", class: "w-full rounded bg-blue-600 text-white px-3 py-2" %>
+  <% end %>
+</div>

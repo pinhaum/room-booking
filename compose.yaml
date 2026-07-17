@@ -1,0 +1,57 @@
+name: room-booking
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-room_booking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: room_booking_development
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-room_booking}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # Build Tailwind CSS on startup (output is gitignored, so recompile each boot),
+    # then start the server. For live CSS rebuilding, run `bin/rails tailwindcss:watch`.
+    command: bash -c "bin/rails tailwindcss:build && bin/rails server -b 0.0.0.0"
+    # Run as the host user so files generated in the mounted volume aren't root-owned.
+    user: "1000:1000"
+    environment:
+      HOME: /tmp
+      RAILS_ENV: development
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-room_booking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bundle_data:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pg_data:
+  bundle_data:

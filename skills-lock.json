@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "serena": {
+      "source": "massgen/massgen",
+      "sourceType": "github",
+      "skillPath": "massgen/skills/serena/SKILL.md",
+      "computedHash": "cb7c1ca5766af482b266edb87ec59f71715dd75d2eafb6359b32ed3a586c2f48"
+    }
+  }
+}
