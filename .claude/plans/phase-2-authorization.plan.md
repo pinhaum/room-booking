@@ -6,18 +6,19 @@
 **Depends on**: Fase 1 (concluída)
 
 ## Summary
-Estabelecer a **camada de autorização própria** baseada em Policies (ADR-006), sem Pundit:
-uma `ApplicationPolicy` base (deny-by-default), um concern `Authorization` que os controllers
-usam para autorizar ações e que traduz negação em **HTTP 403** (ADR-009), e helpers de papel
-(`admin?`/`member?`, já disponíveis via enum do `User`). Como ainda não há recursos de domínio,
-esta fase entrega a **infraestrutura + um caminho 403 verificável**; policies concretas
-(`RoomPolicy`, `ReservationPolicy`) subclassificam `ApplicationPolicy` nas Fases 3 e 4.
+Estabelecer a **camada de autorização própria** baseada em Policies (ADR-006), sem Pundit.
+O modelo **não é RBAC puro**: as policies combinam **papel** (`user.admin?`) e **propriedade**
+(`record.user == user`) — ver ADR-006 revisado. Esta fase entrega uma `ApplicationPolicy` base
+(deny-by-default) com helpers `admin?`/`owner?`, e um concern `Authorization` que os controllers
+usam para autorizar ações e que traduz negação em **HTTP 403** (ADR-009). Como ainda não há
+recursos de domínio, entrega-se a **infraestrutura + um caminho 403 verificável**; policies
+concretas (`RoomPolicy`, `ReservationPolicy`) subclassificam `ApplicationPolicy` nas Fases 3 e 4.
 
 ## Decisões-chave (fiéis aos ADRs)
 - **Policies próprias (ADR-006):** convenção estilo Pundit (`Policy.new(user, record)`, métodos `action?`), mas implementação própria — sem a gem.
 - **Deny-by-default:** todo método de `ApplicationPolicy` retorna `false`; subclasses liberam explicitamente.
 - **Erro → HTTP (ADR-009):** negação levanta `Authorization::NotAuthorized`; o concern faz `rescue_from` → 403 + mensagem pt-BR.
-- **Papéis:** usar `current_user.admin?` / `current_user.member?` (enum já existente); sem novos campos.
+- **Papel + ownership (ADR-006):** policies avaliam `user.admin?` (enum já existente) e, quando há dono, `record.user == user`. Não é RBAC puro; sem novos campos.
 - **TDD (ADR-008):** specs de policy primeiro, depois request (403).
 
 ## Patterns to Mirror
@@ -48,7 +49,9 @@ esta fase entrega a **infraestrutura + um caminho 403 verificável**; policies c
 - **Action**: `spec/policies/application_policy_spec.rb`: por padrão `index?/show?/create?/update?/destroy?`
   retornam `false`; `Scope#resolve` retorna `scope.none` (ou `scope.all` — decidir e testar).
   Implementar `app/policies/application_policy.rb` com `initialize(user, record)`, métodos deny-by-default,
-  helper `admin?` (`user&.admin?`), e classe interna `Scope` (`initialize(user, scope)` + `resolve`).
+  helpers `admin?` (`user&.admin?`) e `owner?` (`record.respond_to?(:user) && record.user == user`),
+  e classe interna `Scope` (`initialize(user, scope)` + `resolve`). Testar `owner?` com um record dummy
+  que responda a `user`.
 - **Mirror**: ADR-006.
 - **Validate**: `docker compose run --rm -e RAILS_ENV=test web bundle exec rspec spec/policies`
 
